@@ -121,3 +121,94 @@ A lot of transformations can be executed on the GPU instead of the CPU. This ena
         </div>
       </div>
 ```
+## Auth accessing
+
+server side: 
+
+```typescript
+
+const Navbar = async () => {
+  const session = await getAuthSession()
+  const user = session?.user
+
+  console.log(session?.user.name)
+```
+
+client side 
+
+```typescript
+import { signOut } from "next-auth/react"
+import { signIn } from "next-auth/react"
+
+const Navbar = () => {
+  const { data: session, status, update } = useSession()
+  const user = session?.user
+
+  console.log(session?.user.name)
+
+  export default () => <button onClick={() => signOut()}>Sign out</button>
+  
+  export default () => <button onClick={() => signIn()}>Sign in</button>
+```
+## origin query parameter
+
+if some one is not authenticated and want to do sth that needs it, we send user to the auth, but pass a query parameter to that link, to get back when auth workflow ends!
+
+```typescript
+  const session = await getAuthSession()
+  const user = session?.user
+
+  if (!user) {
+    //origin query parameter is just for redirecting back, after sign-in
+    redirect('/sign-in?origin=dashboard')
+  }
+```
+
+and we check it in the backend:
+_api/auth-callback_
+
+```typescript
+const Page = () => {
+  const router = useRouter()
+
+  const searchParams = useSearchParams()
+  const origin = searchParams.get('origin')
+
+  trpc.authCallback.useQuery(undefined, {
+    onSuccess: ({ success }) => {
+      if (success) {
+        // user is synced to db
+        router.push(origin ? `/${origin}` : '/dashboard')
+      }
+    },
+    onError: (err) => {
+      if (err.data?.code === 'UNAUTHORIZED') {
+        router.push('/sign-in')
+      }
+    },
+    retry: true,
+    retryDelay: 500,
+  })
+
+  //...
+```
+### how we can handle that in api?
+
+```typescript
+if(success){
+  //if user authenticate
+  // if there is any origin, go to that, else, go to the dashboard
+  router.push(origin ? "/${origin}" : '/dashboard')
+}
+```
+
+## children type
+
+we can instead of ReactNode type, pass **PropsWithChildren** type from react, to the children
+
+```typescript
+const TRPCProvider = ({ children }: PropsWithChildren) => {
+return(
+)
+}
+```

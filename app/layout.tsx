@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/toaster'
 import localFont from 'next/font/local'
 import ReactQueryProvider from './providers/ReactQueryProvider'
 import Navbar from '@/components/Navbar'
+import TRPCProvider from './providers/tRPCProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 const primaryFont = localFont({
@@ -36,19 +37,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fa-IR" dir="rtl">
-      <body
-        className={`${primaryFont.variable} min-h-screen grainy antialiased font-farsi adad  `}
-      >
-        <ReduxProviders>
-          <ReactQueryProvider>
+      <TRPCProvider>
+        <body
+          className={`${primaryFont.variable} min-h-screen grainy antialiased font-farsi adad  `}
+        >
+          <ReduxProviders>
+            {/* <ReactQueryProvider> //here its part of trpc */}
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <Toaster />
               <Navbar />
               {children}
             </ThemeProvider>
-          </ReactQueryProvider>
-        </ReduxProviders>
-      </body>
+            {/* </ReactQueryProvider> */}
+          </ReduxProviders>
+        </body>
+      </TRPCProvider>
     </html>
   )
 }

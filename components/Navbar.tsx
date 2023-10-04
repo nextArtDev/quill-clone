@@ -1,7 +1,6 @@
-'use client'
 import Link from 'next/link'
 import MaxWidthWrapper from './MaxWidthWrapper'
-import { buttonVariants } from './ui/button'
+import { Button, buttonVariants } from './ui/button'
 // import {
 //   LoginLink,
 //   RegisterLink,
@@ -10,13 +9,14 @@ import { buttonVariants } from './ui/button'
 // import UserAccountNav from './UserAccountNav'
 // import MobileNav from './MobileNav'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
-import { useSession } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { cn } from '@/lib/utils'
+import { getAuthSession } from '@/lib/auth'
 
-const Navbar = () => {
+const Navbar = async () => {
   // const { getUser } = getKindeServerSession()
   // const user = getUser()
-  const { data: session, status, update } = useSession()
+  const session = await getAuthSession()
   console.log(session?.user.name)
   const user = session?.user
 
@@ -62,14 +62,14 @@ const Navbar = () => {
                   href="/dashboard"
                   className={cn(
                     buttonVariants({
-                      variant: 'ghost',
+                      variant: 'default',
                       size: 'lg',
                     }),
-                    'flex gap-3'
+                    'flex gap-3 '
                   )}
                 >
                   دشبورد
-                  <span className="text-blue-800 font-semibold space-y-1">
+                  <span className=" font-semibold space-y-1">
                     {`(${session?.user.name}) `}
                   </span>
                 </Link>
