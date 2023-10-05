@@ -165,24 +165,24 @@ export const appRouter = router({
   //     if (!file) throw new TRPCError({ code: 'NOT_FOUND' })
   //     return file
   //   }),
-  // deleteFile: privateProcedure
-  //   .input(z.object({ id: z.string() }))
-  //   .mutation(async ({ ctx, input }) => {
-  //     const { userId } = ctx
-  //     const file = await db.file.findFirst({
-  //       where: {
-  //         id: input.id,
-  //         userId,
-  //       },
-  //     })
-  //     if (!file) throw new TRPCError({ code: 'NOT_FOUND' })
-  //     await db.file.delete({
-  //       where: {
-  //         id: input.id,
-  //       },
-  //     })
-  //     return file
-  //   }),
+  deleteFile: privateProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { userId } = ctx
+      const file = await prisma.file.findFirst({
+        where: {
+          id: input.id,
+          userId: +userId, //we should importantly make sure that this user that is authenticated now, is the one which has this file
+        },
+      })
+      if (!file) throw new TRPCError({ code: 'NOT_FOUND' })
+      await prisma.file.delete({
+        where: {
+          id: input.id,
+        },
+      })
+      return file
+    }),
 })
 
 export type AppRouter = typeof appRouter

@@ -212,3 +212,21 @@ return(
 )
 }
 ```
+
+## Loading state by react-loading-skeleton
+
+~pnpm add react-loading-skeleton
+
+```typescript
+import Skeleton from 'react-loading-skeleton'
+
+//...
+
+<Skeleton height={100} className="my-2" count={3} />
+```
+then we should pass the css file to the rootLayout file:
+
+***app/layout.tsx***
+```typescript
+import 'react-loading-skeleton/dist/skeleton.css'
+```

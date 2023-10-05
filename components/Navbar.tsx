@@ -17,7 +17,7 @@ const Navbar = async () => {
   // const { getUser } = getKindeServerSession()
   // const user = getUser()
   const session = await getAuthSession()
-  console.log(session?.user.name)
+  // console.log(session?.user.name)
   const user = session?.user
 
   return (

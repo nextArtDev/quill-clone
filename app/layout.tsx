@@ -9,6 +9,8 @@ import ReactQueryProvider from './providers/ReactQueryProvider'
 import Navbar from '@/components/Navbar'
 import TRPCProvider from './providers/tRPCProvider'
 
+import 'react-loading-skeleton/dist/skeleton.css'
+
 const inter = Inter({ subsets: ['latin'] })
 const primaryFont = localFont({
   src: '../public/fonts/FarsiFont.woff2',
