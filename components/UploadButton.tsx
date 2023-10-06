@@ -97,16 +97,17 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
               className="flex flex-col items-center justify-center w-full h-full rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
             >
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <Cloud className="h-6 w-6 text-zinc-500 mb-2" />
-                <p className="mb-2 text-sm text-zinc-700">
-                  <span className="font-semibold">Click to upload</span> or drag
-                  and drop
+                <Cloud className="h-6 w-6 text-zinc-500 mb-3" />
+                <p className="mb-2 text-sm text-zinc-700 text-center ">
+                  <span className="font-semibold  ">برای آپلود کلیک کنید</span>
+                  <br className="py-4" /> یا فایل مورد نظر را اینجا رها کنید.
                 </p>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-zinc-500 mt-2 ">
                   PDF (up to {isSubscribed ? '16' : '4'}MB)
                 </p>
               </div>
 
+              {/* to getting feedbacks to user  */}
               {acceptedFiles && acceptedFiles[0] ? (
                 <div className="max-w-xs bg-white flex items-center rounded-md overflow-hidden outline outline-[1px] outline-zinc-200 divide-x divide-zinc-200">
                   <div className="px-3 py-2 h-full grid place-items-center">
@@ -121,16 +122,18 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
               {isUploading ? (
                 <div className="w-full mt-4 max-w-xs mx-auto">
                   <Progress
-                    indicatorColor={
-                      uploadProgress === 100 ? 'bg-green-500' : ''
-                    }
+                    // indicatorColor={
+                    //   uploadProgress === 100 ? 'bg-green-500' : ''
+                    // }
                     value={uploadProgress}
-                    className="h-1 w-full bg-zinc-200"
+                    className={`h-1 w-full bg-zinc-200 ${
+                      uploadProgress === 100 ? 'bg-green-500' : ''
+                    }`}
                   />
                   {uploadProgress === 100 ? (
-                    <div className="flex gap-1 items-center justify-center text-sm text-zinc-700 text-center pt-2">
+                    <div className="flex gap-1 items-center justify-center text-sm text-zinc-700 text-center pt-3">
+                      در حال هدایت به صفحه ...
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      Redirecting...
                     </div>
                   ) : null}
                 </div>

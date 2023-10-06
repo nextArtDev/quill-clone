@@ -1,118 +1,24 @@
-## React Dropzone
+'use client'
 
-~pnpm add react-dropzone
+import { useState } from 'react'
 
-inside dropzone we return a callback function which can return jsx elements from it that have access to getRootProps, getInputProps and acceptedFiles
-
-### acceptedFiles prop
-when somebody drop the file into dropzone, its gonna be in accepted files.
-It takes acceptedFile into a callback and does what we want
-### onDrop prop
-thats what we want to do after droping the file into dropzone
-### getRootProps and getInputProps props 
-they're for using in top level div's, passing the getRootProps and calling it to the top-level div just gonna make the dropzone work.
-
-```typescript
-<Dropzone multiple={false} onDrop={(acceptedFile)=>{
-  console.log(acceptedFile)
-}} >
-{({getRootProps , getInputProps, acceptedFiles})=>(
-  <div {...getRootProps()} >
-
-  </div>
-)}
-</Dropzone>
-```
-
-## shadcn progress
-_value_ prop indicates the situation of progress bar,  
-
-### determinate progress bar
-we set upload progress to receive to the 95% percent in 500ms, after that, if the progress is completed, we complete the bar.
-
-```typescript
-const [uploadProgress, setUploadProgress] = useState<number>(0)
-
-//progress bar completion 
-  const startSimulatedProgress = () => {
-// 1. reset the upload progress to zero
-    setUploadProgress(0)
-
-// 2. setting interval for completing the progress bar
-    const interval = setInterval(() => {
-
-// 3. setting upload progress
-      setUploadProgress((prevProgress) => {
-
-// 4. if upload progress is greater than 95 % clear interval to does not progress any more
-        if (prevProgress >= 95) {
-          clearInterval(interval)
-          return prevProgress
-        }
-
-// 5. if its lower than 95%, increase it by 50
-        return prevProgress + 5
-      })
-    }, 500)
-
-    return interval
-  }
-
-//...
- return (
-    <Dropzone
-      multiple={false}
-      onDrop={async (acceptedFile) => {
-        //6. set uploading to true, to show it for progressbar 
-        setIsUploading(true)
-
-    // 7. we call it after we drag and drop a file into it
-        const progressInterval = startSimulatedProgress()
-
-      
-      // After api call was successful and handling the api
-
-    // 8. we clear the interval of progress interval 
-        clearInterval(progressInterval)
-
-    // 9. finally we set the interval to 100% 
-        setUploadProgress(100)
-
-        // startPolling({ key })
-      }}
-    >
-
-        //...
-
-// 10. conditionally rendering the progressbar
-{isUploading ? (
-                <div className="w-full mt-4 max-w-xs mx-auto">
-                  <Progress
-                    indicatorColor={
-                      uploadProgress === 100 ? 'bg-green-500' : ''
-                    }
-   // 11. setting the value to the uploadProgress     
-                    value={uploadProgress}
-                    className="h-1 w-full bg-zinc-200"
-                  />
-                  
-                  {uploadProgress === 100 ? (
-                    <div className="flex gap-1 items-center justify-center text-sm text-zinc-700 text-center pt-3">
-                      در حال هدایت به صفحه ...
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-```
-
-```typescript
+import Dropzone from 'react-dropzone'
+import { Cloud, File, Loader2 } from 'lucide-react'
+// import { useUploadThing } from '@/lib/uploadthing'
+import { trpc } from '@/app/_trpc/client'
+import { useRouter } from 'next/navigation'
+import { useToast } from '@/components/ui/use-toast'
+import { Progress } from '@/components/ui/progress'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import axios from 'axios'
 
 const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
   const router = useRouter()
 
   const [isUploading, setIsUploading] = useState<boolean>(false)
   const [uploadProgress, setUploadProgress] = useState<number>(0)
+  const [files, setFiles] = useState<File[]>([])
   const { toast } = useToast()
 
   // const { startUpload } = useUploadThing(
@@ -147,15 +53,31 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
 
   return (
     <Dropzone
-      multiple={false}
+      //   multiple={false}
       onDrop={async (acceptedFile) => {
         setIsUploading(true)
 
         const progressInterval = startSimulatedProgress()
 
+        if (acceptedFile?.length) {
+          setFiles((prevFiles) => [
+            ...prevFiles,
+            ...acceptedFile.map(
+              (file) =>
+                Object.assign(file, { preview: URL.createObjectURL(file) })
+              //   file, { preview: URL.createObjectURL(file) }
+            ),
+          ])
+        }
+        console.log(files)
+        const formData = new FormData()
+        files.forEach((file) => formData.append('file', { ...file }))
+        // const objectUrl = URL.createObjectURL(acceptedFile[0])
+        console.log(formData)
+        const data = await axios.post('/api/upload', { formData })
+        console.log(data)
         // handle file uploading
         // const res = await startUpload(acceptedFile)
-
         // if (!res) {
         //   return toast({
         //     title: 'Something went wrong',
@@ -193,16 +115,17 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
               className="flex flex-col items-center justify-center w-full h-full rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
             >
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <Cloud className="h-6 w-6 text-zinc-500 mb-2" />
-                <p className="mb-2 text-sm text-zinc-700">
-                  <span className="font-semibold">Click to upload</span> or drag
-                  and drop
+                <Cloud className="h-6 w-6 text-zinc-500 mb-3" />
+                <p className="mb-2 text-sm text-zinc-700 text-center ">
+                  <span className="font-semibold  ">برای آپلود کلیک کنید</span>
+                  <br className="py-4" /> یا فایل مورد نظر را اینجا رها کنید.
                 </p>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-zinc-500 mt-2 ">
                   PDF (up to {isSubscribed ? '16' : '4'}MB)
                 </p>
               </div>
 
+              {/* to getting feedbacks to user  */}
               {acceptedFiles && acceptedFiles[0] ? (
                 <div className="max-w-xs bg-white flex items-center rounded-md overflow-hidden outline outline-[1px] outline-zinc-200 divide-x divide-zinc-200">
                   <div className="px-3 py-2 h-full grid place-items-center">
@@ -217,27 +140,29 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
               {isUploading ? (
                 <div className="w-full mt-4 max-w-xs mx-auto">
                   <Progress
-                    indicatorColor={
-                      uploadProgress === 100 ? 'bg-green-500' : ''
-                    }
+                    // indicatorColor={
+                    //   uploadProgress === 100 ? 'bg-green-500' : ''
+                    // }
                     value={uploadProgress}
-                    className="h-1 w-full bg-zinc-200"
+                    className={`h-1 w-full bg-zinc-200 ${
+                      uploadProgress === 100 ? 'bg-green-500' : ''
+                    }`}
                   />
                   {uploadProgress === 100 ? (
-                    <div className="flex gap-1 items-center justify-center text-sm text-zinc-700 text-center pt-2">
+                    <div className="flex gap-1 items-center justify-center text-sm text-zinc-700 text-center pt-3">
+                      در حال هدایت به صفحه ...
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      Redirecting...
                     </div>
                   ) : null}
                 </div>
               ) : null}
 
-              <input
+              {/* <input
                 {...getInputProps()}
                 type="file"
                 id="dropzone-file"
                 className="hidden"
-              />
+              /> */}
             </label>
           </div>
         </div>
@@ -246,7 +171,7 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
   )
 }
 
-const UploadButton = ({ isSubscribed }: { isSubscribed: boolean }) => {
+const UploadButtonTest = ({ isSubscribed }: { isSubscribed: boolean }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
 
   return (
@@ -268,5 +193,4 @@ const UploadButton = ({ isSubscribed }: { isSubscribed: boolean }) => {
   )
 }
 
-export default UploadButton
-```
+export default UploadButtonTest
