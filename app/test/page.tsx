@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useS3FileUpload } from 'next-s3-uploader'
+import { useS3Upload } from 'next-s3-upload'
 
 import Dropzone from 'react-dropzone'
 import { Cloud, File, Loader2 } from 'lucide-react'
@@ -19,7 +21,9 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
   const [isUploading, setIsUploading] = useState<boolean>(false)
   const [uploadProgress, setUploadProgress] = useState<number>(0)
   const [files, setFiles] = useState<File[]>([])
+  const [urls, setUrls] = useState([])
   const { toast } = useToast()
+  const { uploadToS3 } = useS3Upload()
 
   // const { startUpload } = useUploadThing(
   //   isSubscribed ? 'proPlanUploader' : 'freePlanUploader'
@@ -57,25 +61,91 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
       onDrop={async (acceptedFile) => {
         setIsUploading(true)
 
+        // if (acceptedFile?.length) {
+        //   setFiles((prevFiles) => [
+        //     ...prevFiles,
+        //     ...acceptedFile.map(
+        //       (file) =>
+        //         Object.assign(file, { preview: URL.createObjectURL(file) })
+        //       //   file, { preview: URL.createObjectURL(file) }
+        //     ),
+        //   ])
+        // }
+        // setFiles(...URL.createObjectURL(acceptedFile))
+        // console.log(files)
         const progressInterval = startSimulatedProgress()
+        // const files = Array.from(acceptedFile)
+        // const files = acceptedFile
 
-        if (acceptedFile?.length) {
-          setFiles((prevFiles) => [
-            ...prevFiles,
-            ...acceptedFile.map(
-              (file) =>
-                Object.assign(file, { preview: URL.createObjectURL(file) })
-              //   file, { preview: URL.createObjectURL(file) }
-            ),
-          ])
+        for (let index = 0; index < acceptedFile.length; index++) {
+          const file = acceptedFile[index]
+          console.log(file)
+          const fileType = encodeURIComponent(file.type)
+
+          const {
+            data: { url, fields, key },
+          } = await axios.post(`/api/s3upload?fileType=${fileType}`)
+          const data = {
+            ...fields,
+            'Content-Type': file.type,
+            file,
+          }
+
+          const formData = new FormData()
+
+          Object.entries(data).forEach(([key, value]) => {
+            formData.append(key, value as any)
+          })
+
+          await fetch(url, {
+            method: 'POST',
+            body: formData,
+          })
+
+          console.log(key)
         }
-        console.log(files)
-        const formData = new FormData()
-        files.forEach((file) => formData.append('file', { ...file }))
-        // const objectUrl = URL.createObjectURL(acceptedFile[0])
-        console.log(formData)
-        const data = await axios.post('/api/upload', { formData })
-        console.log(data)
+        // if (acceptedFile && acceptedFile.length > 0) {
+        //   const fileType = encodeURIComponent(acceptedFile[0].type)
+
+        //   const {
+        //     data: { url, fields, key },
+        //   } = await axios.post(`/api/s3upload?fileType=${fileType}`)
+        //   const data = {
+        //     ...fields,
+        //     'Content-Type': acceptedFile[0].type,
+        //     acceptedFile,
+        //   }
+
+        //   const formData = new FormData()
+
+        //   Object.entries(data).forEach(([key, value]) => {
+        //     formData.append(key, value as any)
+        //   })
+
+        //   await fetch(url, {
+        //     method: 'POST',
+        //     body: formData,
+        //   })
+
+        //   console.log(key)
+
+        // if (acceptedFile?.length) {
+        //   setFiles((prevFiles) => [
+        //     ...prevFiles,
+        //     ...acceptedFile.map(
+        //       (file) =>
+        //         Object.assign(file, { preview: URL.createObjectURL(file) })
+        //       //   file, { preview: URL.createObjectURL(file) }
+        //     ),
+        //   ])
+        // }
+        // console.log(files)
+        // const formData = new FormData()
+        // files.forEach((file) => formData.append('file', file))
+        // // const objectUrl = URL.createObjectURL(acceptedFile[0])
+        // console.log(formData)
+        // const data = await axios.post('/api/upload', { formData })
+        // console.log(data)
         // handle file uploading
         // const res = await startUpload(acceptedFile)
         // if (!res) {
@@ -89,20 +159,23 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
         // const [fileResponse] = res
 
         // const key = fileResponse?.key
-
-        // if (!key) {
-        //   return toast({
-        //     title: 'Something went wrong',
-        //     description: 'Please try again later',
-        //     variant: 'destructive',
-        //   })
-        // }
+        //   const {
+        //       data: { withUrls },
+        //     } = await axios.get(`/api/upload`)
+        //     if (!key) {
+        //         return toast({
+        //             title: 'Something went wrong',
+        //             description: 'Please try again later',
+        //             variant: 'destructive',
+        //         })
+        //     }
 
         clearInterval(progressInterval)
         setUploadProgress(100)
 
-        // startPolling({ key })
+        //   startPolling({ key })
       }}
+      // }
     >
       {({ getRootProps, getInputProps, acceptedFiles }) => (
         <div
