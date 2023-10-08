@@ -30,7 +30,7 @@ const Page = async ({ params }: PageProps) => {
   })
 
   if (!file) notFound()
-
+  console.log(file.url)
   //   const plan = await getUserSubscriptionPlan()
 
   return (
@@ -40,8 +40,9 @@ const Page = async ({ params }: PageProps) => {
         <div className="flex-1 xl:flex">
           <div className="px-4 py-6 sm:px-6 lg:pl-8 xl:flex-1 xl:pl-6">
             {/* Main area */}
-            {/* <PdfRenderer url={file.url} /> */}
-            {file.name}
+            <PdfRenderer url={file.url} />
+
+            {/* {file.name} */}
           </div>
         </div>
 

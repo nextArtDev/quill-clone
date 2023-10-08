@@ -10,6 +10,7 @@ import Navbar from '@/components/Navbar'
 import TRPCProvider from './providers/tRPCProvider'
 
 import 'react-loading-skeleton/dist/skeleton.css'
+import 'simplebar-react/dist/simplebar.min.css'
 
 const inter = Inter({ subsets: ['latin'] })
 const primaryFont = localFont({

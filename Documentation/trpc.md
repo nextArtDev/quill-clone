@@ -406,3 +406,18 @@ calls when the button is clicked right away! not after api call successfully,
 
 ## onSettled
 calls after api response returns, either with error or data.
+
+## Polling approach
+we need check if our file is in the database or not. We every for example 500ms asking, if the file is there, and api will tell us if its there or not. we do that by _retry_ property and _retryDelay_
+
+```typescript
+  const { mutate: startPolling } = trpc.getFile.useMutation({
+    onSuccess: (file) => {
+      router.push(`/dashboard/${file.id}`)
+    },
+
+    //Polling requests
+    retry: true,
+    retryDelay: 500,
+  })
+```

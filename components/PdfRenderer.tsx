@@ -47,6 +47,7 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
   const CustomPageValidator = z.object({
     page: z
       .string()
+      //first we can access what user interred, convert it to number and compar to min and max of pages
       .refine((num) => Number(num) > 0 && Number(num) <= numPages!),
   })
 
@@ -64,7 +65,7 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
     resolver: zodResolver(CustomPageValidator),
   })
 
-  console.log(errors)
+  // console.log(errors)
 
   const { width, ref } = useResizeDetector()
 
@@ -156,7 +157,10 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
             <RotateCw className="h-4 w-4" />
           </Button>
 
-          <PdfFullscreen fileUrl={url} />
+          <PdfFullscreen
+            fileUrl={'/api.pdf'}
+            // fileUrl={url}
+          />
         </div>
       </div>
 
@@ -171,13 +175,14 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
               }
               onLoadError={() => {
                 toast({
-                  title: 'Error loading PDF',
-                  description: 'Please try again later',
+                  title: 'خطای بارگزاری pdf',
+                  description: 'لطفا دوباره امتحان کنید',
                   variant: 'destructive',
                 })
               }}
               onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-              file={url}
+              file={'/api.pdf'}
+              // file={url}
               className="max-h-full"
             >
               {isLoading && renderedScale ? (

@@ -11,8 +11,9 @@ import { Progress } from './ui/progress'
 import { useToast } from './ui/use-toast'
 import { trpc } from '@/app/_trpc/client'
 import { useRouter } from 'next/navigation'
+import axios from 'axios'
 
-const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
+const UploadDropzone = () => {
   const router = useRouter()
 
   const [isUploading, setIsUploading] = useState<boolean>(false)
@@ -23,15 +24,13 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
   //   isSubscribed ? 'proPlanUploader' : 'freePlanUploader'
   // )
 
-  // const { mutate: startPolling } = trpc.getFile.useMutation(
-  //   {
-  //     onSuccess: (file) => {
-  //       router.push(`/dashboard/${file.id}`)
-  //     },
-  //     retry: true,
-  //     retryDelay: 500,
-  //   }
-  // )
+  const { mutate: startPolling } = trpc.getFile.useMutation({
+    onSuccess: (file) => {
+      router.push(`/dashboard/${file.id}`)
+    },
+    retry: true,
+    retryDelay: 500,
+  })
 
   const startSimulatedProgress = () => {
     setUploadProgress(0)
@@ -51,39 +50,67 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
 
   return (
     <Dropzone
-      multiple={false}
+      // multiple={false}
       onDrop={async (acceptedFile) => {
         setIsUploading(true)
 
         const progressInterval = startSimulatedProgress()
 
         // handle file uploading
+
         // const res = await startUpload(acceptedFile)
+        for (let index = 0; index < acceptedFile.length; index++) {
+          const file = acceptedFile[index]
+          // console.log(file)
+          const fileType = encodeURIComponent(file.type)
+          // const fileName = encodeURIComponent(file.name)
 
-        // if (!res) {
-        //   return toast({
-        //     title: 'Something went wrong',
-        //     description: 'Please try again later',
-        //     variant: 'destructive',
-        //   })
-        // }
+          const {
+            data: { url, fields, key },
+          } = await axios.post(`/api/s3upload?fileType=${fileType}`)
+          const data = {
+            ...fields,
+            'Content-Type': file.type,
+            file,
+          }
 
-        // const [fileResponse] = res
+          const formData = new FormData()
 
-        // const key = fileResponse?.key
+          Object.entries(data).forEach(([key, value]) => {
+            formData.append(key, value as any)
+          })
 
-        // if (!key) {
-        //   return toast({
-        //     title: 'Something went wrong',
-        //     description: 'Please try again later',
-        //     variant: 'destructive',
-        //   })
-        // }
+          const res = await fetch(url, {
+            method: 'POST',
+            body: formData,
+          })
 
-        clearInterval(progressInterval)
-        setUploadProgress(100)
+          if (!res) {
+            return toast({
+              title: 'مشکلی پیش آماده.',
+              description: 'لطفا دوباره امتحان کنید.',
+              variant: 'destructive',
+            })
+          }
+          // console.log(key)
 
-        // startPolling({ key })
+          // const [fileResponse] = res
+
+          // const key = fileResponse?.key
+
+          if (!key) {
+            return toast({
+              title: 'مشکلی پیش آماده.',
+              description: 'لطفا دوباره امتحان کنید.',
+              variant: 'destructive',
+            })
+          }
+
+          clearInterval(progressInterval)
+          setUploadProgress(100)
+
+          startPolling({ key })
+        }
       }}
     >
       {({ getRootProps, getInputProps, acceptedFiles }) => (
@@ -103,12 +130,13 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
                   <br className="py-4" /> یا فایل مورد نظر را اینجا رها کنید.
                 </p>
                 <p className="text-xs text-zinc-500 mt-2 ">
-                  PDF (up to {isSubscribed ? '16' : '4'}MB)
+                  {/* PDF (up to {isSubscribed ? '16' : '4'}MB) */}
+                  PDF
                 </p>
               </div>
 
               {/* to getting feedbacks to user  */}
-              {acceptedFiles && acceptedFiles[0] ? (
+              {acceptedFiles && acceptedFiles.length > 0 ? (
                 <div className="max-w-xs bg-white flex items-center rounded-md overflow-hidden outline outline-[1px] outline-zinc-200 divide-x divide-zinc-200">
                   <div className="px-3 py-2 h-full grid place-items-center">
                     <File className="h-4 w-4 text-blue-500" />
@@ -126,7 +154,7 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
                     //   uploadProgress === 100 ? 'bg-green-500' : ''
                     // }
                     value={uploadProgress}
-                    className={`h-1 w-full bg-zinc-200 ${
+                    className={`h-1 w-full bg-zinc-200  ${
                       uploadProgress === 100 ? 'bg-green-500' : ''
                     }`}
                   />
@@ -153,7 +181,7 @@ const UploadDropzone = ({ isSubscribed }: { isSubscribed: boolean }) => {
   )
 }
 
-const UploadButton = ({ isSubscribed }: { isSubscribed: boolean }) => {
+const UploadButton = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
 
   return (
@@ -169,7 +197,7 @@ const UploadButton = ({ isSubscribed }: { isSubscribed: boolean }) => {
         <Button>آپلود PDF</Button>
       </DialogTrigger>
       <DialogContent>
-        <UploadDropzone isSubscribed={isSubscribed} />
+        <UploadDropzone />
       </DialogContent>
     </Dialog>
   )
