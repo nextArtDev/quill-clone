@@ -2,6 +2,7 @@ import PdfRenderer from '@/components/PdfRenderer'
 import { getAuthSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { notFound, redirect } from 'next/navigation'
+import { PDFLoader } from 'langchain/document_loaders/fs/pdf'
 
 interface PageProps {
   params: {
@@ -30,7 +31,25 @@ const Page = async ({ params }: PageProps) => {
   })
 
   if (!file) notFound()
+  // const getBlobPdf = async () => {
+  //   try {
+  //     const response = await fetch(file.url)
+  //     const blob = await response.blob()
+
+  //     console.log(blob)
+  //     // const loader = new PDFLoader(blob)
+
+  //     // const pageLevelDocs = await loader
+
+  //     return response.url
+  //   } catch (error) {
+  //     console.log(error)
+  //   }
+  // }
   console.log(file.url)
+
+  // const pdfBlob = await getBlobPdf()
+  // console.log(pdfBlob)
   //   const plan = await getUserSubscriptionPlan()
 
   return (

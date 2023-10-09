@@ -4,6 +4,7 @@
 
 ~ pnpm add @trpc/server @trpc/client @trpc/react-query @trpc/next @tanstack/react-query zod
 
+we should turn nextjs components in 'use client' when we use front-end side of trpc.
 ## 2. Provider
 
 ```typescript
@@ -356,7 +357,6 @@ we can have responses like: onSuccess , onMutate, and onSettled functions
   })
 ```
 ## How to use loading state for each file (avoiding naming conflict)
-
 for that we have to use state. we can not use of "loading" state of useMutation.
 after that by using onMute and onSettled functions, we can set this value.
 
@@ -420,4 +420,50 @@ we need check if our file is in the database or not. We every for example 500ms 
     retry: true,
     retryDelay: 500,
   })
+```
+## refetchInterval
+
+_refetchInterval_ passes the data(what we send back from api route for example _status_) now we can define we want the pull until the file has a certain status.
+
+## Example of getting upload status
+
+```typescript
+//Back-End
+  getFileUploadStatus: privateProcedure
+    .input(z.object({ fileId: z.string() }))
+
+    //we need to import input and ctx, if we want to use them
+    .query(async ({ input, ctx }) => {
+      const file = await db.file.findFirst({
+        where: {
+          id: input.fileId,
+          userId: ctx.userId,
+        },
+      })
+// status is Enum from constants, we have to tell typescript that's constant
+      if (!file) return { status: 'PENDING' as const }
+
+      return { status: file.uploadStatus }
+    }),
+
+
+
+    //Front-End
+
+       const {data,isLoading} = trpc.getFileUploadStatus.useQuery(
+      {
+        fileId,
+      },
+      {
+  // we pull data until data status is stable (wether it fails or succeed) stop pulling! if its nt stable, refetch every 500ms.
+        refetchInterval: (data) =>
+          data?.status === 'SUCCESS' ||
+          data?.status === 'FAILED'
+            ? false
+            : 500,
+      }
+    )
+
+
+
 ```

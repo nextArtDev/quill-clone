@@ -230,3 +230,7 @@ then we should pass the css file to the rootLayout file:
 ```typescript
 import 'react-loading-skeleton/dist/skeleton.css'
 ```
+
+## css autoFocus property
+
+its using when the page is loaded for the first time.
