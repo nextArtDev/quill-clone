@@ -467,3 +467,325 @@ _refetchInterval_ passes the data(what we send back from api route for example _
 
 
 ```
+
+## GetFileMessages Example useInfiniteQuery
+
+```typescript
+
+//privateProcedure: we have to be logged in to do this
+getFileMessages: privateProcedure
+    .input(
+      z.object({
+
+        //nullish: optional 
+        limit: z.number().min(1).max(100).nullish(),
+
+        //cursor: determine the number of messages for infinite query
+        cursor: z.string().nullish(),
+        fileId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { userId } = ctx
+      const { fileId, cursor } = input
+      const limit = input.limit ?? INFINITE_QUERY_LIMIT
+
+      const file = await db.file.findFirst({
+        where: {
+          id: fileId,
+          userId,
+        },
+      })
+
+      if (!file) throw new TRPCError({ code: 'NOT_FOUND' })
+
+      const messages = await db.message.findMany({
+        //take: prisma for taking!
+        //take + 1 : 
+        take: limit + 1,
+        where: {
+          fileId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+
+        //if we pass cursor, we get the id of that, if not, just undefined.
+        cursor: cursor ? { id: cursor } : undefined,
+        select: {
+          id: true,
+          isUserMessage: true,
+          createdAt: true,
+          text: true,
+        },
+      })
+
+//determine the logic for the next cursor
+      let nextCursor: typeof cursor | undefined = undefined
+      if (messages.length > limit) {
+  // pop removes the last element from an array and returns it
+        const nextItem = messages.pop()
+        nextCursor = nextItem?.id
+      }
+
+      return {
+        messages,
+        nextCursor,
+      }
+    }),
+//..
+
+
+//front-end
+  const { data, isLoading, fetchNextPage } =
+    trpc.getFileMessages.useInfiniteQuery(
+      {
+        fileId,
+        limit: INFINITE_QUERY_LIMIT,
+      },
+      {
+        getNextPageParam: (lastPage) =>
+          lastPage?.nextCursor,
+          //keep previous data to avoid flashes
+        keepPreviousData: true,
+      }
+    )
+
+    const messages = data?.pages.flatMap(
+    (page) => page.messages
+  )
+
+```
+
+## How extend type by trpc
+we get a message from trpc route, but the message model in prisma has more than this properties, how we extend our datas:
+
+_types/message.ts_
+
+```typescript
+import { AppRouter } from '@/trpc'
+import { inferRouterOutputs } from '@trpc/server'
+
+//  infer the type of any route that we are in trpc 
+type RouterOutput = inferRouterOutputs<AppRouter>
+
+//the type of messages that we get from trpc route or get what trpc returns from our api endpoint
+type Messages = RouterOutput['getFileMessages']['messages']
+
+//first omit old message
+type OmitText = Omit<Messages[number], 'text'>
+
+//we get the string and jsx element
+type ExtendedText = {
+  text: string | JSX.Element
+}
+
+// export this extended message
+export type ExtendedMessage = OmitText & ExtendedText
+
+
+// front-end 
+//just import that type for our messages!
+
+interface MessageProps {
+  message: ExtendedMessage
+  isNextMessageSamePerson: boolean
+}
+
+
+```
+
+## Optimistic update with react-query and trpc
+As soon as we typing a message, we want to see the result, if that failed, we will get it back! 
+
+first we need access to trpc utils:
+```typescript
+const utils = trpc.useContext()
+
+ const { mutate: sendMessage } = useMutation({
+    mutationFn: async ({
+      message,
+    }: {
+      message: string
+    }) => {
+      const response = await fetch('/api/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          fileId,
+          message,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send message')
+      }
+
+      return response.body
+    },
+
+    // Optimistic update 
+    onMutate: async ({ message }) => {
+      //as soon as we press the button remove it from the input
+      backupMessage.current = message
+      setMessage('')
+
+      // step 1 
+
+      // we want to cancel any outgoing messages to they dont overwrite pur optimistic update
+      await utils.getFileMessages.cancel()
+
+      // step 2
+
+      //We snapshot the previous value we have 
+      const previousMessages =
+        utils.getFileMessages.getInfiniteData()
+
+      // step 3
+
+      //optimistically insert new value, right away as we send it, by "setInfiniteData" (instead of getInfiniteDate above)
+      utils.getFileMessages.setInfiniteData(
+        { fileId, limit: INFINITE_QUERY_LIMIT },
+        (old) => {
+    
+//Because react-query accepts "pages" and "pageParams"
+          if (!old) {
+            return {
+              pages: [],
+              pageParams: [],
+            }
+          }
+// 4. Cloning the old Pages
+          let newPages = [...old.pages]
+//our lates (for example) 10 messages
+          let latestPage = newPages[0]!
+//5. directly mutating the messages, we add one message and put all of old ones above
+          latestPage.messages = [
+            {
+              createdAt: new Date().toISOString(),
+              id: crypto.randomUUID(),
+              text: message,
+              isUserMessage: true,
+            },
+            //spreading all the other messages that are there
+            ...latestPage.messages,
+          ]
+//we changed data and now insert it as last one we see
+          newPages[0] = latestPage
+
+// we return pages and just overwrite our pages
+          return {
+            ...old,
+            pages: newPages,
+          }
+        }
+      )
+// we want loading after user sends message 
+      setIsLoading(true)
+//6. return pages and there is no message just return empty array
+      return {
+        previousMessages:
+          previousMessages?.pages.flatMap(
+            (page) => page.messages
+          ) ?? [],
+      }
+    },
+    onSuccess: async (stream) => {
+      setIsLoading(false)
+
+      // if (!stream) {
+      //   return toast({
+      //     title: 'There was a problem sending this message',
+      //     description:
+      //       'Please refresh this page and try again',
+      //     variant: 'destructive',
+      //   })
+      // }
+
+      // const reader = stream.getReader()
+      // const decoder = new TextDecoder()
+      // let done = false
+
+      // // accumulated response
+      // let accResponse = ''
+
+      // while (!done) {
+      //   const { value, done: doneReading } =
+      //     await reader.read()
+      //   done = doneReading
+      //   const chunkValue = decoder.decode(value)
+
+      //   accResponse += chunkValue
+
+        // append chunk to the actual message
+        utils.getFileMessages.setInfiniteData(
+          { fileId, limit: INFINITE_QUERY_LIMIT },
+          (old) => {
+            if (!old) return { pages: [], pageParams: [] }
+
+            let isAiResponseCreated = old.pages.some(
+              (page) =>
+                page.messages.some(
+                  (message) => message.id === 'ai-response'
+                )
+            )
+
+            let updatedPages = old.pages.map((page) => {
+              if (page === old.pages[0]) {
+                let updatedMessages
+
+                if (!isAiResponseCreated) {
+                  updatedMessages = [
+                    {
+                      createdAt: new Date().toISOString(),
+                      id: 'ai-response',
+                      text: accResponse,
+                      isUserMessage: false,
+                    },
+                    ...page.messages,
+                  ]
+                } else {
+                  updatedMessages = page.messages.map(
+                    (message) => {
+                      if (message.id === 'ai-response') {
+                        return {
+                          ...message,
+                          text: accResponse,
+                        }
+                      }
+                      return message
+                    }
+                  )
+                }
+
+                return {
+                  ...page,
+                  messages: updatedMessages,
+                }
+              }
+
+              return page
+            })
+
+            return { ...old, pages: updatedPages }
+          }
+        )
+      }
+    },
+
+// 7. if sth went wrong, we want to put inserted message back into the text box
+    onError: (_, __, context) => {
+      setMessage(backupMessage.current)
+      utils.getFileMessages.setData(
+        { fileId },
+        { messages: context?.previousMessages ?? [] }
+      )
+    },
+    onSettled: async () => {
+      setIsLoading(false)
+
+      await utils.getFileMessages.invalidate({ fileId })
+    },
+  })
+
+
+```

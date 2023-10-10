@@ -234,3 +234,24 @@ import 'react-loading-skeleton/dist/skeleton.css'
 ## css autoFocus property
 
 its using when the page is loaded for the first time.
+
+## sending message by "Enter"
+
+```typescript
+ <Textarea
+                rows={1}
+                ref={textareaRef}
+                maxRows={4}
+                autoFocus
+                onChange={handleInputChange}
+                value={message}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    addMessage()
+                    textareaRef.current?.focus()
+                  }
+                }}
+              />
+
+```
