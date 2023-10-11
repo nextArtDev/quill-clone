@@ -255,3 +255,34 @@ its using when the page is loaded for the first time.
               />
 
 ```
+
+## passing the ref down by forwardRef in typescript
+
+```typescript
+interface MessageProps {
+  message: ExtendedMessage
+  isNextMessageSamePerson: boolean
+}
+
+const Message = forwardRef<HTMLDivElement, MessageProps>(
+  ({ message, isNextMessageSamePerson }, ref) => {
+    return (
+        //...
+        )
+
+Message.displayName = 'Message'
+
+export default Message
+```
+## Protecting dashboard by middleware
+
+```typescript
+import { authMiddleware } from '@kinde-oss/kinde-auth-nextjs/server'
+
+export const config = {
+  matcher: ['/dashboard/:path*', '/auth-callback'],
+}
+
+export default authMiddleware
+
+```
