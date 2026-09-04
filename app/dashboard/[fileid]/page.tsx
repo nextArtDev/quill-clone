@@ -31,21 +31,27 @@ const Page = async ({ params }: PageProps) => {
   })
 
   if (!file) notFound()
-  // const getBlobPdf = async () => {
-  //   try {
-  //     const response = await fetch(file.url)
-  //     const blob = await response.blob()
+  const getBlobPdf = async () => {
+    try {
+      const response = await fetch(file.url, {
+        method: 'GET',
+        headers: {
+          'Content-Disposition': 'inline',
+        },
+      })
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
 
-  //     console.log(blob)
-  //     // const loader = new PDFLoader(blob)
+      // console.log(blob)
+      // // const loader = new PDFLoader(blob)
 
-  //     // const pageLevelDocs = await loader
+      // // const pageLevelDocs = await loader
 
-  //     return response.url
-  //   } catch (error) {
-  //     console.log(error)
-  //   }
-  // }
+      return url
+    } catch (error) {
+      console.log(error)
+    }
+  }
   console.log(file.url)
 
   // const pdfBlob = await getBlobPdf()

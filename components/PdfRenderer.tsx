@@ -181,8 +181,8 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
                 })
               }}
               onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-              file={'/api.pdf'}
-              // file={url}
+              // file={'/api.pdf'}
+              file={url}
               className="max-h-full"
             >
               {isLoading && renderedScale ? (
